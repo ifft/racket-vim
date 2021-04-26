@@ -9,6 +9,7 @@
          (define m-str s)
          (define m-pos 0)
          (define m-find-char #f)
+         (define m-last-search-operation 'f)
 
          (define (find str c [pos 0])
            (let loop ([pos pos])
@@ -19,40 +20,32 @@
 
          (define/public (f char #:update [update? #t])
                         (set! m-find-char char)
+                        (set! m-last-search-operation 'f)
                         (let ([new-pos (find m-str char (add1 m-pos))])
                           (and new-pos
-                               (not (eq? new-pos m-pos))
-                               update?
-                               (begin
-                                 (set! m-pos new-pos)
-                                 new-pos))))
+                           (when update? (set! m-pos new-pos))
+                           new-pos)))
+
+
 
          (define/public (semicolon)
-                        (f m-find-char))
+                        (case m-last-search-operation
+                          [(f) (f m-find-char)]
+                          [else (l) (t m-find-char)]))
 
          (define/public (t char #:update [update? #t])
                         (set! m-find-char char)
+                        (set! m-last-search-operation 't)
                         (and (< m-pos (sub1 (string-length m-str)))
                              (let ([new-pos (find m-str char (add1 m-pos))])
-                               (and new-pos (>= (sub1 new-pos) 0)
+                               (and new-pos
                                     (begin
                                       (when update? (set! m-pos (sub1 new-pos)))
                                       (sub1 new-pos))))))
-#;(define/public (i str)
-                        (let ([snip-length (string-length str)])
-                          (set! m-str
-                            (string-append
-                              (substring m-str 0 m-pos)
-                              str
-                              (substring m-str m-pos)))
-                          (set! m-pos
-                            (+ m-pos (sub1 snip-length)))))
 
          (define/public (D)
                         (set! m-str (substring m-str 0 m-pos))
                         (set! m-pos (sub1 m-pos)))
-;123456
-       
       
          (define/public (dt char)
                         (let ([pos (t char #:update #f)])
@@ -65,10 +58,24 @@
                                      (substring m-str (add1 pos) (string-length m-str))))
                                  #t))))
 
-#;(define/public (ct char str))
-#;(define/public (cf char str))
+         (define/public (ct char str) 
+                        (dt char)
+                        (i str))
 
-         #;(define/public (df char))
+#;(define/public (cf char str)
+          (df char)
+          (i str))
+
+
+  (define/public (df char)
+                 (let ([pos (f char #:update #f)])
+                   (and pos
+                        (begin
+                          (set! m-str
+                            (string-append
+                              (substring m-str 0 m-pos)
+                              (substring m-str (add1 pos) (string-length m-str))))
+                          #t))))
 
          (define/public (~)
                         (set! m-str
@@ -78,68 +85,54 @@
                             (substring m-str (add1 m-pos))))
                         (l))
 
-         (define/public (l)
-                        (when (< m-pos (sub1 (string-length m-str)))
-                          (set! m-pos (add1 m-pos))))
+         (define/public (^)
+                   (set! m-pos 0))
+
+         (define/public (l [num 1])
+                        (let* ([strlen (string-length m-str)]
+                               [move-by
+                                (cond [(< (+ m-pos num) strlen) num]
+                                      [else (sub1 (- strlen m-pos))])])
+                          (set! m-pos (+ m-pos move-by))))
 
     (define (insert/append str #:insert? insert?)
-insert:
-0 pos / str / 
-append:
-0 pos+1 / str / 
+      (let ([first-part (cond [insert? (substring m-str 0 m-pos)]
+                              [else (substring m-str 0 (add1 m-pos))])]
+            [last-part (cond [insert? (substring m-str m-pos (string-length m-str))]
+                [else (substring m-str (add1 m-pos) (string-length m-str))])]
+            [new-m-pos (cond [insert? (sub1 (+ m-pos (string-length str)))]
+                             [else (+ m-pos (string-length str))])])
+        (set! m-str
+          (string-append
+            first-part
+            str
+            last-part))
+        (set! m-pos new-m-pos)))
 
-append:
-afterbefore
-    4
-aftertestbefore
-        8
-
-insert:
-afterbefore
-     5
-aftertestbefore
-        8
-   
-
-      (set! m-str
-        (string-append
-          (substring m-str 0 ((cond [insert? identity] [else add1]) m-pos))
-          str
-          (substring m-str (add1 m-pos) (string-length m-str))))
-      (set! m-pos ((if insert? sub1 identity) (+ m-pos (string-length str)))))
 
     (define/public (a str)
-     (insert/append str #:insert? #f))
+                   (insert/append str #:insert? #f))
 
     (define/public (i str)
-     (insert/append str #:insert? #t))
+                   (insert/append str #:insert? #t))
 
-#;(define/public (a str)
-                   (set! m-str
-                     (string-append
-                       (substring m-str 0 (add1 m-pos))
-                       str
-                       (substring m-str (add1 m-pos) (string-length m-str))))
-                   (set! m-pos (+ m-pos (string-length str))))
+    (define/public (h)
+                   (unless (zero? m-pos)
+                     (set! m-pos (sub1 m-pos))))
+    (define/public ($)
+                   (set! m-pos (sub1 (string-length m-str))))
 
+    (define/public (A str)
+                   (set! m-str (string-append m-str str))
+                   (set! m-pos (sub1 (string-length m-str))))
 
-         (define/public (h)
-                        (unless (zero? m-pos)
-                          (set! m-pos (sub1 m-pos))))
-         (define/public ($)
-                        (set! m-pos (sub1 (string-length m-str))))
-
-         (define/public (A str)
-                        (set! m-str (string-append m-str str))
-                        (set! m-pos (sub1 (string-length m-str))))
-
-         (define/public (C str)
-                        (D)
-                        (A str))
+    (define/public (C str)
+                   (D)
+                   (A str))
 
          #;(define/public (R str)
          )
-  ; TODO: e, E, w, W, R, x, F, T, ;
+  ; TODO: e, E, w, W, R, x, F, T
 
   (define/public (get-str) m-str)
   (define/public (get-pos) m-pos)))
@@ -151,13 +144,20 @@ aftertestbefore
            (when str (check-equal? (send obj get-str) str))
            (when pos (check-equal? (send obj get-pos) pos)))
 
-         (test-case "vim command: l"
+         (test-case "vim command: l, ^"
                     (define v (vimobject "123"))
                     (send v l)
                     (check-vimobject v #f 1)
                     (send v l)
                     (check-vimobject v #f 2)
                     (send v l)
+                    (check-vimobject v #f 2)
+                    (send v ^)
+                    (check-vimobject v #f 0)
+                    (send v l 2)
+                    (check-vimobject v #f 2)
+                    (send v ^)
+                    (send v l 5)
                     (check-vimobject v #f 2))
 
          (test-case "vim command: $"
@@ -203,7 +203,7 @@ aftertestbefore
 
          (test-case "vim command: f (no update)"
                     (define v (vimobject "1_345678_0"))
-                    (check-false (send v f #:update #f #\_))
+                    (check-equal? (send v f #:update #f #\_) 1)
                     (check-equal? (send v get-pos) 0))
 
          (test-case "vim command: t"
@@ -248,6 +248,20 @@ aftertestbefore
                     (send v semicolon)
                     (check-vimobject v #f 1))
 
+         (test-case "vim command: ; f then t"
+                    (define v (vimobject "aaabaabaabaab"))
+                    (send v f #\b)
+                    (check-vimobject v #f 3)
+                    (send v semicolon)
+                    (check-vimobject v #f 6)
+                    (send v t #\b)
+                    (check-vimobject v #f 8)
+                    (send v semicolon)
+                    (check-vimobject v #f 11)
+                    (send v $)
+                    (check-false (send v semicolon))
+                    (check-vimobject v #f 12))
+
          (test-case "vim command: dt (1)"
           (define v (vimobject "1234567890"))
           (check-true (send v dt #\5))
@@ -259,6 +273,22 @@ aftertestbefore
           (check-vimobject v #f 4)
           (check-false (send v dt #\5))
           (check-vimobject v "1234567890" 4))
+
+         (test-case "vim command: df"
+          (define v (vimobject "1234567890"))
+          (send v df #\1)
+          (check-vimobject v "1234567890" 0)
+          (send v df #\5)
+          (check-vimobject v "67890" 0)
+          (send v $)
+          (check-vimobject v "67890" 4)
+          (send v df 0)
+          (check-vimobject v "67890" 4))
+
+         (test-case "vim command: ct"
+          (define v (vimobject "hello7890"))
+          (send v ct #\7 "hello")
+          (check-vimobject v "hello7890" 4))
 
          (test-case "vim command: a"
           (define v (vimobject "1234567890"))
