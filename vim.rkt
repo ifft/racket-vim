@@ -321,13 +321,3 @@
            (check-vimobject v "m_dataParametersDow" 18))
 
 
-#;(define v (new vim% [s "m_parametersDow_in"]))
-#;(send* v
-(l)
-(l)
-(i "data")
-(l)
-(~)
-(f #\_)
-(D))
-#;(check-equal? (send v get-str) "m_dataParametersDow"))
